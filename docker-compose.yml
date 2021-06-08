@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  db:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PWD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
+
+  api:
+    image: afterlogic/mysql-learning_api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    command: npm run dev
+    volumes:
+      - "./api:${DOCKER_PATH}/api"
+      - "${DOCKER_PATH}/api/node_modules"
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PWD: ${DB_PWD}
+      JWT_SECRET: ${JWT_SECRET}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
