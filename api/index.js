@@ -1,9 +1,11 @@
 const authRouter = require('./router/authRouter');
+const taskRouter = require('./router/taskRouter');
 const express = require('express');
 const app = express();
 
 app.use(express.json());
 app.use('/auth', authRouter);
+app.use('/task', taskRouter);
 app.get('/', (req, res) => {
 	res.status(200).json('Server is working');
 });

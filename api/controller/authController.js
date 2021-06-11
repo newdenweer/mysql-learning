@@ -30,7 +30,7 @@ const registration = async (req, res) => {
 			]);
 		if (result) {
 			const user = await db.promise().query('SELECT id, userName, email FROM users WHERE id = (?)', result[0].insertId);
-			return res.status(400).json({ user: user[0][0], msg: 'Вы зарегестрировались!' });
+			return res.status(200).json({ user: user[0][0], msg: 'Вы зарегестрировались!' });
 		}
 	} catch (e) {
 		console.log(e);
