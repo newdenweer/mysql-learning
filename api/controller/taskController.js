@@ -20,7 +20,7 @@ const taskCreation = async (req, res) => {
 		return res.status(200).json({ msg: 'Вы добавили задачу', task: task[0][0] });
 	} catch (e) {
 		console.log(e);
-		return res.status(500).json({ msg: e.message });
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
 	}
 };
 

@@ -67,30 +67,4 @@ const login = async (req, res) => {
 	}
 };
 
-// const getUsers = (req, res) => {
-// 	try {
-// 		const usersPromise = db.User.findAll();
-// 		usersPromise
-// 			.then(users => {
-// 				if (!users) {
-// 					return res.status(400).json({ msg: 'GetUser error' });
-// 				}
-// 				return res.status(200).json({
-// 					users: users.map(user => {
-// 						return {
-// 							...user.toJSON(),
-// 							password: undefined,
-// 						};
-// 					}),
-// 				});
-// 			})
-// 			.catch(err => {
-// 				console.log(err.message);
-// 			});
-// 	} catch (e) {
-// 		console.log(e);
-// 		return res.status(400).json({ msg: 'GetUser error' });
-// 	}
-// };
-
 module.exports = { login, registration };
