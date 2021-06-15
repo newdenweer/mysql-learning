@@ -1,5 +1,6 @@
 const db = require('../mysql_connection/createConnection');
 
+//создание задачи:
 const taskCreation = async (req, res) => {
 	try {
 		const { name, text, status } = req.body;
@@ -24,4 +25,165 @@ const taskCreation = async (req, res) => {
 	}
 };
 
-module.exports = { taskCreation };
+//назначение исполнителей задачи:
+const createPerformer = async (req, res) => {
+	try {
+		const { taskId, userId } = req.body;
+		if (!taskId || !userId) {
+			return res.status(400).json({ msg: 'Введите данные' });
+		}
+		const tasksData = await db
+			.promise()
+			.query('SELECT * FROM tasks WHERE creator = (?) AND id = (?)', [req.userId, taskId]);
+		const task = tasksData[0][0];
+		if (!task) {
+			return res.status(400).json({ msg: 'Задача не найдена' });
+		}
+		const result = await db
+			.promise()
+			.query('INSERT INTO performers(performer_id, task_id) VALUES (?, ?)', [userId, taskId]);
+		const performerData = await db.promise().query('SELECT * FROM performers WHERE id = (?)', result[0].insertId);
+		const performer = performerData[0][0];
+		return res.status(200).json({
+			msg: 'Исполнитель назначен',
+			task: performer.task_id,
+			id: performer.id,
+			user_id: performer.performer_id,
+		});
+	} catch (e) {
+		console.log(e);
+		if (e.code === 'ER_NO_REFERENCED_ROW_2') {
+			return res.status(400).json({ msg: `Такого исполнителя не существует` });
+		}
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+//получение списка задач или одной задачи со всеми данными
+const getTasks = async (req, res) => {
+	try {
+		const { id, c, p, tag } = req.query;
+		//получение одной задачи c назначенными исполнителями
+		if (id) {
+			const taskData = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', id);
+			const performersData = await db.promise().query('SELECT id FROM performers WHERE task_id = (?)', id);
+			const performers = performersData[0];
+			const task = taskData[0][0];
+			if (!task) {
+				return res.status(400).json({ msg: 'Задача не найдена' });
+			}
+			if (task && performers[0]) {
+				return res.json({ task: task, performers: performers });
+			}
+			return res.status(200).json(task);
+		}
+		//фильтрация задач по создателю
+		if (c) {
+			const creatorData = await db.promise().query('SELECT * FROM tasks WHERE creator = (?)', c);
+			const creator = creatorData[0];
+			if (!creator[0]) {
+				return res.status(400).json({ msg: 'Этот пользователь не имеет созданных задач' });
+			}
+			return res.status(200).json(creator);
+		}
+
+		//фильтрация задач по исполнителю
+		if (p) {
+			const performerData = await db
+				.promise()
+				.query('SELECT * FROM tasks JOIN performers p on tasks.id = p.task_id WHERE p.id = (?)', p);
+			const performer = performerData[0][0];
+			if (!performer) {
+				return res.status(400).json({ msg: 'Этот пользователь пока не назачен исполнителем' });
+			}
+			return res.status(200).json(performer);
+		}
+
+		//фильтрация задач по тегам
+		if (tag) {
+		}
+
+		// получение всех задач
+		const tasks = await db.promise().query('SELECT * FROM tasks');
+		return res.status(200).json({ tasks: tasks[0] });
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+//добавление коментариев к задаче
+const createComment = async (req, res) => {
+	try {
+		const { taskId, text } = req.body;
+		const taskData = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
+		const task = taskData[0][0];
+		if (!task) {
+			return res.status(400).json({ msg: 'Задача не найдена' });
+		}
+		if (task.creator !== req.userId) {
+			const performerData = await db
+				.promise()
+				.query('SELECT * FROM performers WHERE task_id = (?) AND performer_id = (?)', [taskId, req.userId]);
+			const performer = performerData[0][0];
+			if (!performer) {
+				return res.status(400).json({ msg: 'Отказано' });
+			}
+		}
+		const result = await db
+			.promise()
+			.query('INSERT INTO comments(text, task_id, user_id) VALUES (?,?,?)', [text, taskId, req.userId]);
+		const commentData = await db.promise().query('SELECT * FROM comments WHERE id = (?)', result[0].insertId);
+		return res.json({ msg: 'Комментарий добавлен', comment: commentData[0][0] });
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+//добавление оценки исполнителю
+const createRating = async (req, res) => {
+	try {
+		const { rating, performerId, text } = req.body;
+		if (!rating || !performerId) {
+			return res.status(400).json({ msg: 'Введите данные' });
+		}
+		const creatorData = await db
+			.promise()
+			.query(
+				'SELECT tasks.creator FROM tasks JOIN performers ON tasks.id = performers.task_id WHERE performers.id = (?)',
+				performerId
+			);
+		const creator = creatorData[0][0].creator;
+		if (creator !== req.userId) {
+			return res.status(400).json({ msg: 'Отказано (Оценку может ставить только создатель)' });
+		}
+		const ratingData = await db
+			.promise()
+			.query('INSERT INTO rating(rating, performer_id) VALUES (?,?)', [rating, performerId]);
+		if (text) {
+			await db
+				.promise()
+				.query('INSERT INTO comments(text, user_id, rating_id) VALUES (?,?,?)', [
+					text,
+					req.userId,
+					ratingData[0].insertId,
+				]);
+			const result = await db
+				.promise()
+				.query(
+					'SELECT rating.id AS rating_id, rating.rating, rating.performer_id, c.id AS comment_id, c.text, c.user_id FROM rating JOIN comments c on rating.id = c.rating_id WHERE rating.id = (?)',
+					ratingData[0].insertId
+				);
+			console.log(result[0]);
+			return res.status(200).json({ msg: 'Вы поставили оценку', rating: result[0] });
+		} else {
+			const result = await db.promise().query('SELECT * FROM rating WHERE id = (?)', ratingData[0].insertId);
+			return res.status(200).json({ msg: 'Вы поставили оценку', rating: result[0] });
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+module.exports = { taskCreation, createPerformer, getTasks, createComment, createRating };

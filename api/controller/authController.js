@@ -8,7 +8,7 @@ const generateToken = id => {
 	let data = {
 		id,
 	};
-	return jwt.sign(data, secret, { expiresIn: 60 * 60 * 4 });
+	return jwt.sign(data, secret, { expiresIn: 60 * 60 * 24 });
 };
 
 const registration = async (req, res) => {
