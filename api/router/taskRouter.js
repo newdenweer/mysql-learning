@@ -8,5 +8,6 @@ taskRouter.post('/performers', checkToken, controller.createPerformer);
 taskRouter.get('/', checkToken, controller.getTasks);
 taskRouter.post('/comment', checkToken, controller.createComment);
 taskRouter.post('/rating', checkToken, controller.createRating);
+taskRouter.post('/tag', checkToken, controller.createTag);
 
 module.exports = taskRouter;
