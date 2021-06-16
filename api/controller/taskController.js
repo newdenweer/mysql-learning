@@ -1,4 +1,5 @@
 const db = require('../mysql_connection/createConnection');
+const checkUser = require('./checkUser');
 
 //создание задачи:
 const taskCreation = async (req, res) => {
@@ -119,25 +120,12 @@ const createComment = async (req, res) => {
 		if (!taskId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
-		const taskData = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
-		const task = taskData[0][0];
-		if (!task) {
-			return res.status(400).json({ msg: 'Задача не найдена' });
-		}
-		if (task.creator !== req.userId) {
-			const performerData = await db
-				.promise()
-				.query('SELECT * FROM performers WHERE task_id = (?) AND performer_id = (?)', [taskId, req.userId]);
-			const performer = performerData[0][0];
-			if (!performer) {
-				return res.status(400).json({ msg: 'Отказано' });
-			}
-		}
+		await checkUser(req.userId, taskId, res);
 		const result = await db
 			.promise()
 			.query('INSERT INTO comments(text, task_id, user_id) VALUES (?,?,?)', [text, taskId, req.userId]);
 		const commentData = await db.promise().query('SELECT * FROM comments WHERE id = (?)', result[0].insertId);
-		return res.json({ msg: 'Комментарий добавлен', comment: commentData[0][0] });
+		return res.status(200).json({ msg: 'Комментарий добавлен', comment: commentData[0][0] });
 	} catch (e) {
 		console.log(e);
 		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
@@ -197,20 +185,7 @@ const createTag = async (req, res) => {
 		if (!taskId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
-		const taskData = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
-		const task = taskData[0][0];
-		if (!task) {
-			return res.status(400).json({ msg: 'Задача не найдена' });
-		}
-		if (task.creator !== req.userId) {
-			const performerData = await db
-				.promise()
-				.query('SELECT * FROM performers WHERE task_id = (?) AND performer_id = (?)', [taskId, req.userId]);
-			const performer = performerData[0][0];
-			if (!performer) {
-				return res.status(400).json({ msg: 'Отказано' });
-			}
-		}
+		await checkUser(req.userId, taskId, res);
 		if (text.match(/\s/g) !== null) {
 			return res.status(400).json({ msg: 'Tag не должен содержать пробелы' });
 		}
@@ -229,14 +204,5 @@ const createTag = async (req, res) => {
 		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
 	}
 };
-
-//добавление чеклистов
-// const createCheckList = async (req, res) => {
-// 	try {
-// 	} catch (e) {
-// 		console.log(e);
-// 		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
-// 	}
-// };
 
 module.exports = { taskCreation, createPerformer, getTasks, createComment, createRating, createTag };
