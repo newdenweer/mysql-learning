@@ -10,7 +10,7 @@ const checkUser = async (id, taskId, res) => {
 	if (task.creator !== id) {
 		const performerData = await db
 			.promise()
-			.query('SELECT * FROM performers WHERE task_id = (?) AND performer_id = (?)', [taskId, id]);
+			.query('SELECT * FROM performers WHERE task_id = (?) AND user_id = (?)', [taskId, id]);
 		const performer = performerData[0][0];
 		if (!performer) {
 			return res

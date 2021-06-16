@@ -33,6 +33,7 @@ const createPerformer = async (req, res) => {
 		if (!taskId || !userId) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
+		console.log(req.userId);
 		const tasksData = await db
 			.promise()
 			.query('SELECT * FROM tasks WHERE creator = (?) AND id = (?)', [req.userId, taskId]);
@@ -40,16 +41,12 @@ const createPerformer = async (req, res) => {
 		if (!task) {
 			return res.status(400).json({ msg: 'Задача не найдена' });
 		}
-		const result = await db
-			.promise()
-			.query('INSERT INTO performers(performer_id, task_id) VALUES (?, ?)', [userId, taskId]);
+		const result = await db.promise().query('INSERT INTO performers(user_id, task_id) VALUES (?, ?)', [userId, taskId]);
 		const performerData = await db.promise().query('SELECT * FROM performers WHERE id = (?)', result[0].insertId);
 		const performer = performerData[0][0];
 		return res.status(200).json({
 			msg: 'Исполнитель назначен',
-			task: performer.task_id,
-			id: performer.id,
-			user_id: performer.performer_id,
+			performer: performer,
 		});
 	} catch (e) {
 		console.log(e);
@@ -120,7 +117,10 @@ const createComment = async (req, res) => {
 		if (!taskId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
-		await checkUser(req.userId, taskId, res);
+		const check = await checkUser(req.userId, taskId, res);
+		if (check) {
+			return check;
+		}
 		const result = await db
 			.promise()
 			.query('INSERT INTO comments(text, task_id, user_id) VALUES (?,?,?)', [text, taskId, req.userId]);
@@ -132,7 +132,7 @@ const createComment = async (req, res) => {
 	}
 };
 
-//добавление оценки исполнителю
+//добавление оценки(рейтинга) исполнителю
 const createRating = async (req, res) => {
 	try {
 		const { rating, performerId, text } = req.body;
@@ -185,7 +185,10 @@ const createTag = async (req, res) => {
 		if (!taskId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
-		await checkUser(req.userId, taskId, res);
+		const check = await checkUser(req.userId, taskId, res);
+		if (check) {
+			return check;
+		}
 		if (text.match(/\s/g) !== null) {
 			return res.status(400).json({ msg: 'Tag не должен содержать пробелы' });
 		}
