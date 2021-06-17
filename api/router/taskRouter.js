@@ -11,6 +11,8 @@ const taskRouter = express.Router();
 
 taskRouter.post('/', checkToken, taskController.taskCreation);
 taskRouter.get('/', checkToken, taskController.getTasks);
+taskRouter.delete('/', checkToken, taskController.deleteTask);
+taskRouter.put('/', checkToken, taskController.updateStatus);
 
 taskRouter.post('/comment', checkToken, commentController.createComment);
 
