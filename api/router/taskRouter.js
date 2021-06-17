@@ -15,6 +15,8 @@ taskRouter.delete('/', checkToken, taskController.deleteTask);
 taskRouter.put('/', checkToken, taskController.updateStatus);
 
 taskRouter.post('/comment', checkToken, commentController.createComment);
+taskRouter.put('/comment', checkToken, commentController.updateComment);
+taskRouter.delete('/comment', checkToken, commentController.deleteComment);
 
 taskRouter.post('/rating', checkToken, ratingController.createRating);
 
