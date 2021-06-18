@@ -4,7 +4,8 @@ const checkUser = require('./checkUser');
 //добавление коментариев к задаче
 const createComment = async (req, res) => {
 	try {
-		const { taskId, text } = req.body;
+		const { taskId } = req.params;
+		const { text } = req.body;
 		if (!taskId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
@@ -23,6 +24,7 @@ const createComment = async (req, res) => {
 	}
 };
 
+//изменение комментария
 const updateComment = async (req, res) => {
 	try {
 		const { commentId, newText } = req.body;
@@ -40,6 +42,7 @@ const updateComment = async (req, res) => {
 	}
 };
 
+//удаление комментария
 const deleteComment = async (req, res) => {
 	try {
 		const { commentId } = req.body;
