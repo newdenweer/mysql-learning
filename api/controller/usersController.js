@@ -21,4 +21,27 @@ const getUsers = async (req, res) => {
 	}
 };
 
-module.exports = { getUsers };
+const getOneUser = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const userData = await db.promise().query('SELECT id, userName FROM users WHERE id = (?)', id);
+		if (!userData[0][0]) {
+			return res.status(400).json({ msg: 'Неверный ID' });
+		}
+		const performerData = await db
+			.promise()
+			.query('SELECT id AS performer_id, task_id FROM performers WHERE user_id = (?)', id);
+		const creatorData = await db.promise().query('SELECT * FROM tasks WHERE creator = (?)', id);
+		return res.status(200).json({
+			msg: 'Информация о пользователе',
+			user: userData[0][0],
+			performer: performerData[0],
+			task: creatorData[0],
+		});
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+module.exports = { getUsers, getOneUser };

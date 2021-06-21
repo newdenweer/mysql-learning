@@ -1,14 +1,25 @@
 const db = require('../mysql_connection/createConnection');
 const checkUser = require('./checkUser');
 
+//функция генерирует номер позиции чеклиста или юнита
 const addPosition = arr => {
-	return arr.length + 1;
+	if (arr.length === 0) {
+		return 1;
+	}
+	let temp = arr[0].position;
+	for (let i = 1; i < arr.length; i++) {
+		if (temp < arr[i].position) {
+			temp = arr[i].position;
+		}
+	}
+	return temp + 1;
 };
 
 // добавление чеклистов
 const createCheckList = async (req, res) => {
 	try {
-		const { name, taskId, status, text } = req.body;
+		const { taskId } = req.params;
+		const { name, status, text } = req.body;
 		if (!name || !taskId) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
@@ -16,7 +27,7 @@ const createCheckList = async (req, res) => {
 		if (check) {
 			return check;
 		}
-		const checkPosition = await db.promise().query('SELECT * FROM checklists WHERE task_id = (?)', taskId);
+		const checkPosition = await db.promise().query('SELECT position FROM checklists WHERE task_id = (?)', taskId);
 		const newChecklist = await db
 			.promise()
 			.query('INSERT INTO checklists(name, status, position, task_id, text) VALUES (?,?,?,?,?)', [
@@ -37,7 +48,8 @@ const createCheckList = async (req, res) => {
 //добавление пунктов в чеклисты
 const createUnit = async (req, res) => {
 	try {
-		const { checklistId, text, status } = req.body;
+		const { checklistId } = req.params;
+		const { text, status } = req.body;
 		if (!checklistId || !text) {
 			return res.status(400).json({ msg: 'Введите данные' });
 		}
@@ -46,7 +58,7 @@ const createUnit = async (req, res) => {
 		if (check) {
 			return check;
 		}
-		const checkPosition = await db.promise().query('SELECT * FROM units WHERE checklist_id = (?)', checklistId);
+		const checkPosition = await db.promise().query('SELECT position FROM units WHERE checklist_id = (?)', checklistId);
 		const newUnit = await db
 			.promise()
 			.query('INSERT INTO units(text, checklist_id, position, status) VALUES (?,?,?,?)', [
@@ -63,4 +75,26 @@ const createUnit = async (req, res) => {
 	}
 };
 
-module.exports = { createCheckList, createUnit };
+const deleteChecklist = async (req, res) => {
+	try {
+		const { taskId, checklistId } = req.params;
+		const check = await checkUser(req.userId, taskId, res);
+		if (check) {
+			return check;
+		}
+		const checkChecklistData = await db.promise().query('SELECT * FROM checklists WHERE id = (?)', checklistId);
+		if (!checkChecklistData[0][0]) {
+			return res.status(400).json({ msg: 'Такого чек листа нет' });
+		}
+		await db.promise().query('DELETE FROM units WHERE checklist_id = (?)', checklistId);
+		await db.promise().query('DELETE FROM checklists WHERE id = (?)', checklistId);
+		const taskData = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
+		const checklistsData = await db.promise().query('SELECT * FROM checklists WHERE task_id = (?)', taskId);
+		return res.status(200).json({ msg: 'Чеклист удален', task: taskData[0][0], checklists: checklistsData[0] });
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+module.exports = { createCheckList, createUnit, deleteChecklist };
