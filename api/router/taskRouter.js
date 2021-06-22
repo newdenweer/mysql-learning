@@ -33,4 +33,12 @@ taskRouter.delete('/:taskId/performers/:performerId', checkToken, performerContr
 taskRouter.post('/:taskId/checklist', checkToken, checkListController.createCheckList);
 taskRouter.post('/:taskId/checklist/:checklistId/unit', checkToken, checkListController.createUnit);
 taskRouter.delete('/:taskId/checklist/:checklistId', checkToken, checkListController.deleteChecklist);
+taskRouter.delete('/:taskId/checklist/:checklistId/units/:unitId', checkToken, checkListController.deleteUnit);
+taskRouter.put('/:taskId/checklist/:checklistId/position', checkToken, checkListController.changePositionChecklist);
+taskRouter.put(
+	'/:taskId/checklist/:checklistId/units/:unitId/position',
+	checkToken,
+	checkListController.changePositionUnit
+);
+
 module.exports = taskRouter;
