@@ -129,7 +129,7 @@ const updateStatus = async (req, res) => {
 	try {
 		const { taskId } = req.params;
 		const { newStatus } = req.body;
-		if (!newStatus || (newStatus !== '1' && newStatus !== '0')) {
+		if (!(newStatus === '1' || newStatus === '0')) {
 			return res.status(400).json({ msg: 'Некорректные данные' });
 		}
 		const check = await checkUser(req.userId, taskId, res);

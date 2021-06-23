@@ -46,6 +46,92 @@ const createCheckList = async (req, res) => {
 	}
 };
 
+//изменение данных чеклиста name, text, status
+const updateChecklist = async (req, res) => {
+	try {
+		const { taskId, checklistId } = req.params;
+		const { name, text, status } = req.body;
+		if (!name && !text && !status) {
+			return res.status(400).json({ msg: 'Данные отсутствуют' });
+		}
+		const check = await checkUser(req.userId, taskId, res);
+		if (check) {
+			return check;
+		}
+		const checklistData = await db
+			.promise()
+			.query('SELECT * FROM checklists WHERE id = (?) AND task_id = (?)', [checklistId, taskId]);
+		if (!checklistData[0][0]) {
+			return res.status(400).json({ msg: 'Некорректные данные. Такого checklist нет' });
+		}
+		if (status) {
+			if (!(status === '1' || status === '0')) {
+				return res.status(400).json({ msg: 'Некорректные данные' });
+			}
+			await db
+				.promise()
+				.query('UPDATE checklists SET status = (?) WHERE id = (?) AND task_id = (?)', [status, checklistId, taskId]);
+		}
+		if (name) {
+			await db
+				.promise()
+				.query('UPDATE checklists SET name = (?) WHERE id = (?) AND task_id = (?)', [name, checklistId, taskId]);
+		}
+		if (text) {
+			await db
+				.promise()
+				.query('UPDATE checklists SET text = (?) WHERE id = (?) AND task_id = (?)', [text, checklistId, taskId]);
+		}
+		const result = await db.promise().query('SELECT * FROM checklists WHERE id = (?)', checklistId);
+		return res.status(200).json({ msg: 'checklist изменен', checklist: result[0][0] });
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
+//изменение данных юнита text, status
+const updateUnit = async (req, res) => {
+	try {
+		const { taskId, checklistId, unitId } = req.params;
+		const { text, status } = req.body;
+		if (!text && !status) {
+			return res.status(400).json({ msg: 'Данные отсутствуют' });
+		}
+		const check = await checkUser(req.userId, taskId, res);
+		if (check) {
+			return check;
+		}
+		const unitData = await db
+			.promise()
+			.query(
+				'SELECT units.id FROM units join checklists c on c.id = units.checklist_id WHERE units.id = (?) AND checklist_id = (?) AND task_id = (?)',
+				[unitId, checklistId, taskId]
+			);
+		if (!unitData[0][0]) {
+			return res.status(400).json({ msg: 'Некорректные данные. Такого unit нет' });
+		}
+		if (status) {
+			if (!(status === '1' || status === '0')) {
+				return res.status(400).json({ msg: 'Некорректные данные' });
+			}
+			await db
+				.promise()
+				.query('UPDATE units SET status = (?) WHERE id = (?) AND checklist_id= (?)', [status, unitId, checklistId]);
+		}
+		if (text) {
+			await db
+				.promise()
+				.query('UPDATE units SET text = (?) WHERE id = (?) AND checklist_id= (?)', [text, unitId, checklistId]);
+		}
+		const result = await db.promise().query('SELECT * FROM units WHERE id = (?)', unitId);
+		return res.status(200).json({ msg: 'unit изменен', checklist: result[0][0] });
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
+	}
+};
+
 //добавление пунктов в чеклисты
 const createUnit = async (req, res) => {
 	try {
@@ -231,4 +317,6 @@ module.exports = {
 	deleteUnit,
 	changePositionChecklist,
 	changePositionUnit,
+	updateChecklist,
+	updateUnit,
 };
