@@ -13,9 +13,7 @@ taskRouter.post('/', checkToken, taskController.taskCreation);
 taskRouter.get('/', checkToken, taskController.getDataTasks);
 taskRouter.get('/:taskId', checkToken, taskController.getTask);
 taskRouter.delete('/:taskId', checkToken, taskController.deleteTask);
-taskRouter.put('/:taskId/status', checkToken, taskController.updateStatus);
-taskRouter.put('/:taskId/name', checkToken, taskController.updateName);
-taskRouter.put('/:taskId/text', checkToken, taskController.updateText);
+taskRouter.put('/:taskId', checkToken, taskController.updateTask);
 
 taskRouter.post('/:taskId/comment', checkToken, commentController.createComment);
 taskRouter.put('/:taskId/comment', checkToken, commentController.updateComment);
@@ -36,11 +34,5 @@ taskRouter.delete('/:taskId/checklist/:checklistId', checkToken, checkListContro
 taskRouter.delete('/:taskId/checklist/:checklistId/unit/:unitId', checkToken, checkListController.deleteUnit);
 taskRouter.put('/:taskId/checklist/:checklistId', checkToken, checkListController.updateChecklist);
 taskRouter.put('/:taskId/checklist/:checklistId/unit/:unitId', checkToken, checkListController.updateUnit);
-taskRouter.put('/:taskId/checklist/:checklistId/position', checkToken, checkListController.changePositionChecklist);
-taskRouter.put(
-	'/:taskId/checklist/:checklistId/units/:unitId/position',
-	checkToken,
-	checkListController.changePositionUnit
-);
 
 module.exports = taskRouter;

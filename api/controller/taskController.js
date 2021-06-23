@@ -1,5 +1,4 @@
 const db = require('../mysql_connection/createConnection');
-const checkUser = require('./checkUser');
 
 //создание задачи:
 const taskCreation = async (req, res) => {
@@ -41,7 +40,7 @@ const getTask = async (req, res) => {
 		const unitsData = await db
 			.promise()
 			.query(
-				'SELECT units.id, units.text, units.checklist_id, units.position, units.status FROM units JOIN checklists c on c.id = units.checklist_id WHERE task_id = (?)',
+				'SELECT units.id, units.text, units.checklist_id, units.lexorank, units.status FROM units JOIN checklists c on c.id = units.checklist_id WHERE task_id = (?)',
 				taskId
 			);
 		const tagsData = await db
@@ -124,71 +123,39 @@ const deleteTask = async (req, res) => {
 	}
 };
 
-// изменение статуса задачи
-const updateStatus = async (req, res) => {
+//изменение задачи name, text, status
+const updateTask = async (req, res) => {
 	try {
 		const { taskId } = req.params;
-		const { newStatus } = req.body;
-		if (!(newStatus === '1' || newStatus === '0')) {
-			return res.status(400).json({ msg: 'Некорректные данные' });
+		const { name, text, status } = req.body;
+		if (!name && !text && !status) {
+			return res.status(400).json({ msg: 'Данные отсутствуют' });
 		}
-		const check = await checkUser(req.userId, taskId, res);
-		if (check) {
-			return check;
+		const checkCreator = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
+		if (!checkCreator[0][0]) {
+			return res.status(400).json({ msg: 'Такой задачи нет' });
 		}
-		await db.promise().query('UPDATE tasks SET status = (?) WHERE id = (?)', [newStatus, taskId]);
+		if (checkCreator[0][0].creator !== req.userId) {
+			return res.status(400).json({ msg: 'Отказано! Изменять задачу может только создатель' });
+		}
+		if (name) {
+			await db.promise().query('UPDATE tasks SET name = (?) WHERE id = (?)', [name, taskId]);
+		}
+		if (text) {
+			await db.promise().query('UPDATE tasks SET text = (?) WHERE id = (?)', [text, taskId]);
+		}
+		if (status) {
+			if (!(status === '1' || status === '0')) {
+				return res.status(400).json({ msg: 'Некорректные данные. Status 1 or 0' });
+			}
+			await db.promise().query('UPDATE tasks SET status = (?) WHERE id = (?)', [status, taskId]);
+		}
 		const result = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
-		return res.status(200).json({ msg: 'Статус задачи изменен', task: result[0][0] });
+		return res.status(200).json({ msg: 'Данные обновлены', task: result[0][0] });
 	} catch (e) {
 		console.log(e);
 		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
 	}
 };
 
-//изменение названия задачи(только для создателя)
-const updateName = async (req, res) => {
-	try {
-		const { taskId } = req.params;
-		const { newName } = req.body;
-		if (!newName) {
-			return res.status(400).json({ msg: 'Некорректные данные (введите новое название задачи)' });
-		}
-		const tasksData = await db
-			.promise()
-			.query('SELECT * FROM tasks WHERE creator = (?) AND id = (?)', [req.userId, taskId]);
-		if (!tasksData[0][0]) {
-			return res.status(400).json({ msg: 'Задача не найдена (изменять можно только свои задачи)' });
-		}
-		await db.promise().query('UPDATE tasks SET name = (?) WHERE id = (?)', [newName, taskId]);
-		const result = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
-		return res.status(200).json({ msg: 'Название задачи изменено', task: result[0][0] });
-	} catch (e) {
-		console.log(e);
-		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
-	}
-};
-
-//изменение условия задачи
-const updateText = async (req, res) => {
-	try {
-		const { taskId } = req.params;
-		const { newText } = req.body;
-		if (!newText) {
-			return res.status(400).json({ msg: 'Некорректные данные (введите новое условие задачи)' });
-		}
-		const tasksData = await db
-			.promise()
-			.query('SELECT * FROM tasks WHERE creator = (?) AND id = (?)', [req.userId, taskId]);
-		if (!tasksData[0][0]) {
-			return res.status(400).json({ msg: 'Задача не найдена (изменять можно только свои задачи)' });
-		}
-		await db.promise().query('UPDATE tasks SET text = (?) WHERE id = (?)', [newText, taskId]);
-		const result = await db.promise().query('SELECT * FROM tasks WHERE id = (?)', taskId);
-		return res.status(200).json({ msg: 'Условие задачи изменено', task: result[0][0] });
-	} catch (e) {
-		console.log(e);
-		return res.status(500).json({ msg: `Что-то случилось ${e.message}` });
-	}
-};
-
-module.exports = { taskCreation, getDataTasks, deleteTask, updateStatus, getTask, updateName, updateText };
+module.exports = { taskCreation, getDataTasks, deleteTask, getTask, updateTask };
