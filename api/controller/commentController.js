@@ -1,5 +1,5 @@
 const db = require('../mysql_connection/createConnection');
-const checkUser = require('./checkUser');
+const checkUser = require('../services/checkUser');
 
 //добавление коментариев к задаче
 const createComment = async (req, res) => {
@@ -28,13 +28,19 @@ const createComment = async (req, res) => {
 const updateComment = async (req, res) => {
 	try {
 		const { commentId, newText } = req.body;
+
 		const commentData = await db.promise().query('SELECT * FROM comments WHERE id = (?)', commentId);
+
 		if (commentData[0][0].user_id !== req.userId) {
 			return res.status(400).json({ msg: 'Изменять можно только свои комментарии' });
 		}
+
 		console.log(newText);
+
 		await db.promise().query('UPDATE comments SET text = (?) WHERE id = (?)', [newText, commentId]);
+
 		const result = await db.promise().query('SELECT * FROM comments WHERE id = (?)', commentId);
+
 		return res.status(200).json({ msg: 'Комментарий изменен', comment: result[0][0] });
 	} catch (e) {
 		console.log(e);

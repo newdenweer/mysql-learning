@@ -1,5 +1,5 @@
 const db = require('../mysql_connection/createConnection');
-const checkUser = require('./checkUser');
+const checkUser = require('../services/checkUser');
 
 // добавление чеклистов
 const createCheckList = async (req, res) => {
